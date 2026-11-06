@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-class AuthReadinessTest {
+class AuthReadinessTest extends AuthSpringTest {
 
     @Autowired
     private MockMvc http;
