@@ -28,6 +28,14 @@ server:
     connection-timeout: 5s              # reading the request headers
     keep-alive-timeout: 60s             # idle connection
 
+# Tokens auth signs (ADR-020): the private key is a file infra mounts read-only from keys/<env>/,
+# never an env variable; the kid is JWT_KID of the environment and the issuer JWT_ISSUER.
+auth:
+  jwt:
+    private-key-file: ${AUTH_JWT_PRIVATE_KEY_FILE:}
+    key-id: ${AUTH_JWT_KEY_ID:}
+    issuer: ${JWT_ISSUER:}
+
 # One JSON object per log line; the MDC (correlationId) goes into every line (Anexo C 5.3.9).
 logging:
   structured:
