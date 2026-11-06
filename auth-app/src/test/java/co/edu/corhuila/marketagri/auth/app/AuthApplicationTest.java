@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /** The composition root starts and the liveness endpoint answers without a token (E-60). */
 @SpringBootTest
 @AutoConfigureMockMvc
-class AuthApplicationTest {
+class AuthApplicationTest extends AuthSpringTest {
 
     @Autowired
     private MockMvc http;

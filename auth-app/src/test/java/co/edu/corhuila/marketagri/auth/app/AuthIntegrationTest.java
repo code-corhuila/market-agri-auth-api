@@ -10,7 +10,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * carries the auth_app user and password: `bash scripts/test-database.sh` prints one.
  */
 @EnabledIfEnvironmentVariable(named = "TEST_DATABASE_URL", matches = ".+")
-abstract class AuthIntegrationTest {
+abstract class AuthIntegrationTest extends AuthSpringTest {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
