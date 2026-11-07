@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * its {@code Location} (E-08), or {@code 200} with the original user when the key was used (D-C35).
  * No tokens: the client logs in with E-02 (D-C32). The body is the {@code UserView} of E-02.
  */
+@PublicEndpoint
 @RestController
 @RequestMapping("/api/v1/auth")
 public class RegisterController {

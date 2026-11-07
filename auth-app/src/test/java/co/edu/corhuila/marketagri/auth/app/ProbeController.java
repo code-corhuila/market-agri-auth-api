@@ -1,5 +1,6 @@
 package co.edu.corhuila.marketagri.auth.app;
 
+import co.edu.corhuila.marketagri.auth.adapter.in.http.PublicEndpoint;
 import co.edu.corhuila.marketagri.auth.domain.model.DomainException;
 import co.edu.corhuila.marketagri.auth.domain.model.InvalidCredentialsException;
 import java.util.Map;
@@ -16,8 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Test-only routes for the cross-cutting HTTP adapter (error body, validation, correlation, domain
  * codes). They stay after the real endpoints exist: they test the handler and the filter on their
- * own. They live in the test sources, so they never reach the jar.
+ * own. They live in the test sources, so they never reach the jar. Anonymous, so the token never
+ * hides the check under test; the token checks use {@link SecuredProbeController}.
  */
+@PublicEndpoint
 @RestController
 public class ProbeController {
 
