@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** E-05 {@code GET /api/v1/auth/jwks} (HU-PLAT-002): anonymous, an RFC 7517 key set cached ten minutes. */
+@PublicEndpoint
 @RestController
 @RequestMapping("/api/v1/auth")
 public class JwksController {

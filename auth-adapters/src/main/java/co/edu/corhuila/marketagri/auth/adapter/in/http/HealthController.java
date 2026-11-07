@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code 503} otherwise, with the same body. auth depends only on its {@code database}.
  * Both are anonymous.
  */
+@PublicEndpoint
 @RestController
 public class HealthController {
 
