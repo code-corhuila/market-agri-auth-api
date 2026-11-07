@@ -1,7 +1,6 @@
 # auth-api: the service this repository contributes to the platform.
-# market-agri-infra includes this file (Annex G). No `ports`: only the API Gateway is
-# published; auth-api is reachable only on the `platform` network.
-# Every value comes from the market-agri-infra .env; missing ones fail with a clear message.
+# market-agri-infra includes this file (Annex G). No `ports`: only the API Gateway publishes one.
+# Every value comes from the market-agri-infra env file; a missing one stops Compose with a message.
 
 services:
   auth-api:
@@ -10,18 +9,27 @@ services:
       dockerfile: deploy/Dockerfile
     environment:
       PORT: "8080"
-      DATABASE_URL: jdbc:postgresql://auth-db:5432/auth
-      DATABASE_USER: ${AUTH_DB_USER:?AUTH_DB_USER is not set}
-      DATABASE_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD is not set}
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?JWT_PRIVATE_KEY is not set}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY is not set}
-      JWT_KEY_ID: ${JWT_KEY_ID:?JWT_KEY_ID is not set}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${PG_DATABASE:?set PG_DATABASE}
+      DATABASE_USER: auth_app
+      DATABASE_PASSWORD: ${AUTH_APP_PASSWORD:?set AUTH_APP_PASSWORD}
+      JWT_ISSUER: ${JWT_ISSUER:?set JWT_ISSUER}
+      # The private key is a file, never a variable (ADR-020 point 1): the secret
+      # auth-jwt-private-key that market-agri-infra declares from keys/<env>/jwt-private.pem.
+      AUTH_JWT_PRIVATE_KEY_FILE: /run/secrets/auth-jwt-private-key
+      AUTH_JWT_KEY_ID: ${JWT_KID:?set JWT_KID}
+      # auth validates the tokens that reach it like every service (Annex C 5.3.7).
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?set JWT_PUBLIC_KEY}
+      # Callers of I-01 (clientId:sha256-hex pairs); empty = no service token is issued.
+      AUTH_SERVICE_CLIENTS: ${AUTH_SERVICE_CLIENTS:-}
+    secrets:                          # declared by market-agri-infra; resolved when included
+      - auth-jwt-private-key
+    depends_on:                       # postgres lives in market-agri-infra; resolved when included
+      postgres:
+        condition: service_healthy
     expose:
       - "8080"
-    # No depends_on auth-db: that service lives in market-agri-auth-db and would make this file
-    # invalid on its own. The pool connects lazily; GET /health/ready reports the database.
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+    healthcheck:                      # readiness: healthy only when the database answers (D-C20)
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health/ready"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -29,9 +37,9 @@ services:
     # Longer than the 20 s graceful shutdown declared in application.yml.
     stop_grace_period: 25s
     restart: unless-stopped
-    networks:
-      - platform
+    networks: [platform]
 
 networks:
   platform:
+    name: platform-${ENV:?set ENV}
     external: true
