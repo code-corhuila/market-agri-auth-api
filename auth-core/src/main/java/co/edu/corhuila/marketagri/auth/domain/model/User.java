@@ -21,4 +21,12 @@ public record User(UUID id, String name, Email email, PasswordHash passwordHash,
         }
         name = name.strip();
     }
+
+    /** Factory of a self-registered user (E-01): only a producer or a buyer (FR-008). */
+    public static User register(UUID id, String name, Email email, PasswordHash passwordHash, Role role) {
+        if (role != Role.PRODUCER && role != Role.BUYER) {
+            throw new RoleNotAllowedException();
+        }
+        return new User(id, name, email, passwordHash, role);
+    }
 }

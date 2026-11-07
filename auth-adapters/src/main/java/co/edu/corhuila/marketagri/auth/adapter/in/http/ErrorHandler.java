@@ -67,6 +67,13 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(known.get().status()).body(error);
     }
 
+    /** A header or a parameter out of range (the Idempotency-Key of E-01): 400 naming it. */
+    @ExceptionHandler(InvalidParameterException.class)
+    public ResponseEntity<Object> handleInvalidParameter(InvalidParameterException exception, WebRequest request) {
+        List<ApiError.FieldDetail> details = List.of(new ApiError.FieldDetail(exception.field(), exception.getMessage()));
+        return body(ErrorCode.VALIDATION_ERROR, details, HttpHeaders.EMPTY, request);
+    }
+
     /** Last resort: neutral message to the client, full detail only in the log (NFR-039). */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpected(Exception exception, WebRequest request) {
