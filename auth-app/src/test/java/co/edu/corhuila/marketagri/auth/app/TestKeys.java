@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
 
@@ -28,6 +29,11 @@ final class TestKeys {
 
     static PublicKey publicKey() {
         return KEYS.getPublic();
+    }
+
+    /** For {@link TestTokens}: the tokens a client presents are signed by the same key as auth's. */
+    static PrivateKey privateKey() {
+        return KEYS.getPrivate();
     }
 
     private static KeyPair generate() {

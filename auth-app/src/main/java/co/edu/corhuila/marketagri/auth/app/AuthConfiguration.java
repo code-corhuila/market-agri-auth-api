@@ -1,5 +1,7 @@
 package co.edu.corhuila.marketagri.auth.app;
 
+import co.edu.corhuila.marketagri.auth.adapter.in.http.PublicKeys;
+import co.edu.corhuila.marketagri.auth.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcDatabaseCheck;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcRefreshTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcUserAccounts;
@@ -27,6 +29,7 @@ import co.edu.corhuila.marketagri.auth.application.usecase.PublishSigningKeyServ
 import co.edu.corhuila.marketagri.auth.application.usecase.RegisterService;
 import java.nio.file.Path;
 import java.security.PrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -130,5 +133,26 @@ public class AuthConfiguration {
     @Bean
     IssueServiceToken issueServiceToken(ServiceClients serviceClients, Rs256AccessTokens tokenSigner) {
         return new IssueServiceTokenService(serviceClients, tokenSigner, Clock.systemUTC());
+    }
+
+    /**
+     * Validator of the tokens that reach auth (ADR-020 point 2, Anexo C 5.3.7), as in every service:
+     * the public key by configuration, JWT_PUBLIC_KEY first, JWT_PUBLIC_KEY_FILE otherwise. It must be
+     * the public half of the signing key; without it, or with another one, the service does not start.
+     */
+    @Bean
+    Rs256Verifier tokenVerifier(SigningKeys signingKeys,
+                                @Value("${auth.jwt.issuer:}") String issuer,
+                                @Value("${auth.jwt.public-key:}") String publicKey,
+                                @Value("${auth.jwt.public-key-file:}") String publicKeyFile) {
+        RSAPublicKey key;
+        if (!publicKey.isBlank()) {
+            key = PublicKeys.fromPem(publicKey);
+        } else if (!publicKeyFile.isBlank()) {
+            key = PublicKeys.fromFile(Path.of(publicKeyFile));
+        } else {
+            throw new IllegalStateException("Set JWT_PUBLIC_KEY or JWT_PUBLIC_KEY_FILE");
+        }
+        return new Rs256Verifier(PublicKeys.pairedWith(key, signingKeys.current()), issuer, Clock.systemUTC());
     }
 }
