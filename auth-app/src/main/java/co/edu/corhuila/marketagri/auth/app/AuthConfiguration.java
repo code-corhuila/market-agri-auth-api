@@ -6,14 +6,19 @@ import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcUserAccounts;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.BcryptPasswordVerifier;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.PrivateKeys;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.Rs256AccessTokens;
+import co.edu.corhuila.marketagri.auth.adapter.out.security.RsaSigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
+import co.edu.corhuila.marketagri.auth.application.port.in.PublishSigningKey;
 import co.edu.corhuila.marketagri.auth.application.port.out.AccessTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.PasswordVerifier;
 import co.edu.corhuila.marketagri.auth.application.port.out.ReadinessCheck;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
+import co.edu.corhuila.marketagri.auth.application.port.out.SigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
 import co.edu.corhuila.marketagri.auth.application.usecase.LogInService;
+import co.edu.corhuila.marketagri.auth.application.usecase.PublishSigningKeyService;
 import java.nio.file.Path;
+import java.security.PrivateKey;
 import java.time.Clock;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,17 +55,34 @@ public class AuthConfiguration {
     }
 
     /**
-     * The signer of the tokens (ADR-020 point 1): the private key from the file infra mounts, its kid
-     * and the issuer by configuration. Without any of them the service does not start.
+     * The private key auth signs with (ADR-020 point 1), read once from the file infra mounts.
+     * Without it the service does not start.
      */
     @Bean
-    AccessTokens accessTokens(@Value("${auth.jwt.private-key-file:}") String privateKeyFile,
-                              @Value("${auth.jwt.key-id:}") String keyId,
-                              @Value("${auth.jwt.issuer:}") String issuer) {
+    PrivateKey signingPrivateKey(@Value("${auth.jwt.private-key-file:}") String privateKeyFile) {
         if (privateKeyFile.isBlank()) {
             throw new IllegalStateException("Set AUTH_JWT_PRIVATE_KEY_FILE");
         }
-        return new Rs256AccessTokens(PrivateKeys.fromFile(Path.of(privateKeyFile)), keyId, issuer);
+        return PrivateKeys.fromFile(Path.of(privateKeyFile));
+    }
+
+    /** The signer of the tokens: that key, its kid and the issuer by configuration. */
+    @Bean
+    AccessTokens accessTokens(PrivateKey signingPrivateKey,
+                              @Value("${auth.jwt.key-id:}") String keyId,
+                              @Value("${auth.jwt.issuer:}") String issuer) {
+        return new Rs256AccessTokens(signingPrivateKey, keyId, issuer);
+    }
+
+    /** E-05 publishes the public half of the same key, with the same kid (ADR-020 point 2). */
+    @Bean
+    SigningKeys signingKeys(PrivateKey signingPrivateKey, @Value("${auth.jwt.key-id:}") String keyId) {
+        return new RsaSigningKeys(signingPrivateKey, keyId);
+    }
+
+    @Bean
+    PublishSigningKey publishSigningKey(SigningKeys signingKeys) {
+        return new PublishSigningKeyService(signingKeys);
     }
 
     @Bean
