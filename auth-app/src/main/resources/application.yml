@@ -35,6 +35,9 @@ auth:
     private-key-file: ${AUTH_JWT_PRIVATE_KEY_FILE:}
     key-id: ${AUTH_JWT_KEY_ID:}
     issuer: ${JWT_ISSUER:}
+  # Callers of I-01 (ADR-020 point 5): clientId:sha256-hex-of-the-secret pairs, comma-separated.
+  # An environment secret; empty means no service can get a token.
+  service-clients: ${AUTH_SERVICE_CLIENTS:}
 
 # One JSON object per log line; the MDC (correlationId) goes into every line (Anexo C 5.3.9).
 logging:
