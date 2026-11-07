@@ -12,6 +12,7 @@ import co.edu.corhuila.marketagri.auth.adapter.out.security.ConfiguredServiceCli
 import co.edu.corhuila.marketagri.auth.adapter.out.security.PrivateKeys;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.Rs256AccessTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.RsaSigningKeys;
+import co.edu.corhuila.marketagri.auth.application.port.in.GetUser;
 import co.edu.corhuila.marketagri.auth.application.port.in.IssueServiceToken;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
 import co.edu.corhuila.marketagri.auth.application.port.in.PublishSigningKey;
@@ -22,7 +23,9 @@ import co.edu.corhuila.marketagri.auth.application.port.out.ServiceClients;
 import co.edu.corhuila.marketagri.auth.application.port.out.SigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.out.UnitOfWork;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
+import co.edu.corhuila.marketagri.auth.application.port.out.UserProfiles;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserRegistrations;
+import co.edu.corhuila.marketagri.auth.application.usecase.GetUserService;
 import co.edu.corhuila.marketagri.auth.application.usecase.IssueServiceTokenService;
 import co.edu.corhuila.marketagri.auth.application.usecase.LogInService;
 import co.edu.corhuila.marketagri.auth.application.usecase.PublishSigningKeyService;
@@ -52,8 +55,9 @@ public class AuthConfiguration {
         return new JdbcDatabaseCheck(dataSource);
     }
 
+    /** The users of auth-db for the login (UserAccounts) and for E-08 (UserProfiles): one bean. */
     @Bean
-    UserAccounts userAccounts(JdbcClient jdbc) {
+    JdbcUserAccounts userAccounts(JdbcClient jdbc) {
         return new JdbcUserAccounts(jdbc);
     }
 
@@ -122,6 +126,12 @@ public class AuthConfiguration {
     @Bean
     Register register(UserRegistrations registrations, BcryptPasswordVerifier passwords, UnitOfWork unitOfWork) {
         return new RegisterService(registrations, passwords, unitOfWork);
+    }
+
+    /** E-08: the user themselves or ADMIN. */
+    @Bean
+    GetUser getUser(UserProfiles profiles) {
+        return new GetUserService(profiles);
     }
 
     /** The callers of I-01 (ADR-020 points 5 and 8): AUTH_SERVICE_CLIENTS, an environment secret. */
