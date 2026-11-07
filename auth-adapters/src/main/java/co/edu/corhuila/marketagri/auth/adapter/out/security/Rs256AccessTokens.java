@@ -1,6 +1,8 @@
 package co.edu.corhuila.marketagri.auth.adapter.out.security;
 
 import co.edu.corhuila.marketagri.auth.application.port.out.AccessTokens;
+import co.edu.corhuila.marketagri.auth.application.port.out.ServiceTokens;
+import co.edu.corhuila.marketagri.auth.domain.model.ServiceClient;
 import co.edu.corhuila.marketagri.auth.domain.model.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,9 +19,12 @@ import java.util.Objects;
 /**
  * Signs the access token (ADR-020 point 1): RS256 with the private key of the environment, its
  * {@code kid} in the header, and the claims of D-C3 ({@code sub, role, name, iss, iat, exp}) in
- * seconds. Every service validates it locally with the public half.
+ * seconds. Every service validates it locally with the public half. A service token (ADR-020 point
+ * 5) has {@code sub = service:<name>}, {@code role = SERVICE} and no {@code name}.
  */
-public final class Rs256AccessTokens implements AccessTokens {
+public final class Rs256AccessTokens implements AccessTokens, ServiceTokens {
+
+    private static final String SERVICE_ROLE = "SERVICE";
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Base64.Encoder BASE64URL = Base64.getUrlEncoder().withoutPadding();
@@ -39,14 +44,26 @@ public final class Rs256AccessTokens implements AccessTokens {
 
     @Override
     public String sign(User user, Instant issuedAt, Instant expiresAt) {
-        Map<String, Object> header = new LinkedHashMap<>();
-        header.put("alg", "RS256");
-        header.put("typ", "JWT");
-        header.put("kid", keyId);
         Map<String, Object> claims = new LinkedHashMap<>();
         claims.put("sub", user.id().toString());
         claims.put("role", user.role().name());
         claims.put("name", user.name());
+        return signed(claims, issuedAt, expiresAt);
+    }
+
+    @Override
+    public String signService(ServiceClient client, Instant issuedAt, Instant expiresAt) {
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("sub", client.subject());
+        claims.put("role", SERVICE_ROLE);
+        return signed(claims, issuedAt, expiresAt);
+    }
+
+    private String signed(Map<String, Object> claims, Instant issuedAt, Instant expiresAt) {
+        Map<String, Object> header = new LinkedHashMap<>();
+        header.put("alg", "RS256");
+        header.put("typ", "JWT");
+        header.put("kid", keyId);
         claims.put("iss", issuer);
         claims.put("iat", issuedAt.getEpochSecond());
         claims.put("exp", expiresAt.getEpochSecond());

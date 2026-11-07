@@ -4,17 +4,20 @@ import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcDatabaseCheck
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcRefreshTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcUserAccounts;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.BcryptPasswordVerifier;
+import co.edu.corhuila.marketagri.auth.adapter.out.security.ConfiguredServiceClients;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.PrivateKeys;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.Rs256AccessTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.RsaSigningKeys;
+import co.edu.corhuila.marketagri.auth.application.port.in.IssueServiceToken;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
 import co.edu.corhuila.marketagri.auth.application.port.in.PublishSigningKey;
-import co.edu.corhuila.marketagri.auth.application.port.out.AccessTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.PasswordVerifier;
 import co.edu.corhuila.marketagri.auth.application.port.out.ReadinessCheck;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
+import co.edu.corhuila.marketagri.auth.application.port.out.ServiceClients;
 import co.edu.corhuila.marketagri.auth.application.port.out.SigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
+import co.edu.corhuila.marketagri.auth.application.usecase.IssueServiceTokenService;
 import co.edu.corhuila.marketagri.auth.application.usecase.LogInService;
 import co.edu.corhuila.marketagri.auth.application.usecase.PublishSigningKeyService;
 import java.nio.file.Path;
@@ -66,9 +69,12 @@ public class AuthConfiguration {
         return PrivateKeys.fromFile(Path.of(privateKeyFile));
     }
 
-    /** The signer of the tokens: that key, its kid and the issuer by configuration. */
+    /**
+     * The signer of the user and the service tokens (ports AccessTokens and ServiceTokens): that key,
+     * its kid and the issuer by configuration. One bean, so each port has a single implementation.
+     */
     @Bean
-    AccessTokens accessTokens(PrivateKey signingPrivateKey,
+    Rs256AccessTokens tokenSigner(PrivateKey signingPrivateKey,
                               @Value("${auth.jwt.key-id:}") String keyId,
                               @Value("${auth.jwt.issuer:}") String issuer) {
         return new Rs256AccessTokens(signingPrivateKey, keyId, issuer);
@@ -86,8 +92,19 @@ public class AuthConfiguration {
     }
 
     @Bean
-    LogIn logIn(UserAccounts accounts, PasswordVerifier passwords, AccessTokens accessTokens,
+    LogIn logIn(UserAccounts accounts, PasswordVerifier passwords, Rs256AccessTokens tokenSigner,
                 RefreshTokens refreshTokens) {
-        return new LogInService(accounts, passwords, accessTokens, refreshTokens, Clock.systemUTC());
+        return new LogInService(accounts, passwords, tokenSigner, refreshTokens, Clock.systemUTC());
+    }
+
+    /** The callers of I-01 (ADR-020 points 5 and 8): AUTH_SERVICE_CLIENTS, an environment secret. */
+    @Bean
+    ServiceClients serviceClients(@Value("${auth.service-clients:}") String configuration) {
+        return new ConfiguredServiceClients(configuration);
+    }
+
+    @Bean
+    IssueServiceToken issueServiceToken(ServiceClients serviceClients, Rs256AccessTokens tokenSigner) {
+        return new IssueServiceTokenService(serviceClients, tokenSigner, Clock.systemUTC());
     }
 }
