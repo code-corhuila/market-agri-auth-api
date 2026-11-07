@@ -29,4 +29,14 @@ public record User(UUID id, String name, Email email, PasswordHash passwordHash,
         }
         return new User(id, name, email, passwordHash, role);
     }
+
+    /**
+     * E-08: a user is visible to themselves and to ADMIN only. Checked before looking the user up,
+     * so the answer never tells whether an id exists.
+     */
+    public static void ensureVisibleTo(UUID userId, UUID callerId, Role callerRole) {
+        if (!userId.equals(callerId) && callerRole != Role.ADMIN) {
+            throw new UserNotVisibleException();
+        }
+    }
 }
