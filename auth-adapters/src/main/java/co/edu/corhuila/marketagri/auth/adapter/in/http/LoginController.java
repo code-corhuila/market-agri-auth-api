@@ -1,6 +1,7 @@
 package co.edu.corhuila.marketagri.auth.adapter.in.http;
 
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
+import co.edu.corhuila.marketagri.auth.domain.model.AccountLockedException;
 import co.edu.corhuila.marketagri.auth.domain.model.InvalidCredentialsException;
 import co.edu.corhuila.marketagri.auth.domain.model.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,12 +62,19 @@ public class LoginController {
                     UserView.of(session.user()));
         } catch (InvalidCredentialsException failed) {
             // NFR-052: who tried (the time is the log's), never the password nor whether the email exists.
-            LOG.atWarn()
-                    .addKeyValue("clientIp", clientIp(request))
-                    .addKeyValue("userAgent", request.getHeader(HttpHeaders.USER_AGENT))
-                    .log("Login failed: invalid credentials");
+            logRefused(request, "Login failed: invalid credentials");
             throw failed;
+        } catch (AccountLockedException locked) {
+            logRefused(request, "Login refused: account locked");
+            throw locked;
         }
+    }
+
+    private static void logRefused(HttpServletRequest request, String message) {
+        LOG.atWarn()
+                .addKeyValue("clientIp", clientIp(request))
+                .addKeyValue("userAgent", request.getHeader(HttpHeaders.USER_AGENT))
+                .log(message);
     }
 
     /** The first address the gateway forwarded, or the peer when the request did not pass through it. */
