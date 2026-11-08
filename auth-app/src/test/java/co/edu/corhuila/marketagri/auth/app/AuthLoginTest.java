@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import co.edu.corhuila.marketagri.auth.application.port.out.LoginAttempts;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
 import co.edu.corhuila.marketagri.auth.domain.model.Email;
@@ -59,6 +60,34 @@ class AuthLoginTest extends AuthSpringTest {
     @TestConfiguration
     static class InMemoryAccounts {
         final List<String> issued = new ArrayList<>();
+        /** user_account's lockout state of Ana, with the rule of the atomic UPDATE (HU-AUTH-005). */
+        int failures;
+        Instant lockedUntil;
+
+        @Bean
+        @Primary
+        LoginAttempts inMemoryLoginAttempts() {
+            return new LoginAttempts() {
+                @Override
+                public boolean isLocked(UUID userId, Instant now) {
+                    return lockedUntil != null && lockedUntil.isAfter(now);
+                }
+
+                @Override
+                public void recordFailure(UUID userId, Instant now, int maxFailures, Duration lock) {
+                    if (++failures >= maxFailures) {
+                        failures = 0;
+                        lockedUntil = now.plus(lock);
+                    }
+                }
+
+                @Override
+                public void recordSuccess(UUID userId) {
+                    failures = 0;
+                    lockedUntil = null;
+                }
+            };
+        }
 
         @Bean
         @Primary
@@ -86,8 +115,10 @@ class AuthLoginTest extends AuthSpringTest {
     private final ObjectMapper json = new ObjectMapper();
 
     @BeforeEach
-    void forgetTokens() {
+    void forgetTokensAndFailures() {
         memory.issued.clear();
+        memory.failures = 0;
+        memory.lockedUntil = null;
     }
 
     private ResultActions logIn(String body) throws Exception {
@@ -175,5 +206,22 @@ class AuthLoginTest extends AuthSpringTest {
         // NFR-052: IP, time and user agent of every failure; never the password.
         assertThat(log.getOut()).contains("Login failed").contains("pruebas-e2e/1.0").contains("127.0.0.1");
         assertThat(log.getOut()).doesNotContain("ClaveSecreta-987");
+    }
+
+    @Test
+    void fiveWrongPasswordsLockTheAccountAndTheNextAttemptIs423EvenWithTheRightOne(CapturedOutput log) throws Exception {
+        for (int i = 0; i < 5; i++) {
+            logIn(body("productor@market-agri.test", "Otra123")).andExpect(status().isUnauthorized());
+        }
+
+        logIn(body("productor@market-agri.test", PASSWORD))
+                .andExpect(status().is(423))
+                .andExpect(jsonPath("$.error").value("ACCOUNT_LOCKED"))
+                .andExpect(jsonPath("$.message").value(
+                        "La cuenta está bloqueada temporalmente por intentos fallidos. Intente de nuevo en 15 minutos."))
+                .andExpect(jsonPath("$.details", hasSize(0)));
+        assertThat(memory.issued).isEmpty();
+        // NFR-052: the refused attempt is logged with the client too, never with the password.
+        assertThat(log.getOut()).contains("Login refused: account locked").doesNotContain(PASSWORD);
     }
 }
