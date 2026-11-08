@@ -76,4 +76,14 @@ class UserTest {
         assertThatThrownBy(() -> User.register(ID, "Ana", email, HASH, Role.ADMIN))
                 .isInstanceOf(RoleNotAllowedException.class);
     }
+
+    @Test
+    void theTeamProvisionsAnAdminOutsideTheRegistration() {
+        // FR-008: the only way to an ADMIN; E-01 still refuses it.
+        User admin = User.provisionAdmin(ID, "Administración", Email.of("admin@b.co"), HASH);
+
+        assertThat(admin.role()).isEqualTo(Role.ADMIN);
+        assertThatThrownBy(() -> User.register(ID, "Ana", Email.of("a@b.co"), HASH, Role.ADMIN))
+                .isInstanceOf(RoleNotAllowedException.class);
+    }
 }
