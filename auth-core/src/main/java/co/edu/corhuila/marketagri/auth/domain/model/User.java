@@ -30,6 +30,11 @@ public record User(UUID id, String name, Email email, PasswordHash passwordHash,
         return new User(id, name, email, passwordHash, role);
     }
 
+    /** Factory of the initial ADMIN (FR-008): only through a path the team operates, never E-01. */
+    public static User provisionAdmin(UUID id, String name, Email email, PasswordHash passwordHash) {
+        return new User(id, name, email, passwordHash, Role.ADMIN);
+    }
+
     /**
      * E-08: a user is visible to themselves and to ADMIN only. Checked before looking the user up,
      * so the answer never tells whether an id exists.
