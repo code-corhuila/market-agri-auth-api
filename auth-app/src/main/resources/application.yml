@@ -35,6 +35,10 @@ auth:
     private-key-file: ${AUTH_JWT_PRIVATE_KEY_FILE:}
     key-id: ${AUTH_JWT_KEY_ID:}
     issuer: ${JWT_ISSUER:}
+    # The tokens that reach auth are validated like in every service (Anexo C 5.3.7): the public key
+    # by configuration, JWT_PUBLIC_KEY (PEM on one line with literal \n) or JWT_PUBLIC_KEY_FILE.
+    public-key: ${JWT_PUBLIC_KEY:}
+    public-key-file: ${JWT_PUBLIC_KEY_FILE:}
   # Callers of I-01 (ADR-020 point 5): clientId:sha256-hex-of-the-secret pairs, comma-separated.
   # An environment secret; empty means no service can get a token.
   service-clients: ${AUTH_SERVICE_CLIENTS:}

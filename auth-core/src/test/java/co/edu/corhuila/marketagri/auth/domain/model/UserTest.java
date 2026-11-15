@@ -66,4 +66,14 @@ class UserTest {
     void anEmptyHashIsRefused() {
         assertThatThrownBy(() -> new PasswordHash(" ")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void onlyAProducerOrABuyerCanRegister() {
+        // FR-008: ADMIN is never self-registered (E-01 row 2).
+        Email email = Email.of("a@b.co");
+        assertThat(User.register(ID, "Ana", email, HASH, Role.BUYER).role()).isEqualTo(Role.BUYER);
+        assertThat(User.register(ID, "Ana", email, HASH, Role.PRODUCER).role()).isEqualTo(Role.PRODUCER);
+        assertThatThrownBy(() -> User.register(ID, "Ana", email, HASH, Role.ADMIN))
+                .isInstanceOf(RoleNotAllowedException.class);
+    }
 }
