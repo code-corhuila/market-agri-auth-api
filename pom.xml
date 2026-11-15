@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Solo aporta gestión de versiones y plugins: no añade dependencias a los módulos. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>co.edu.corhuila.marketagri</groupId>
+    <artifactId>auth-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>market-agri-auth-api</name>
+    <description>auth bounded context: service API (arquitectura hexagonal)</description>
+
+    <!-- Orden de construcción: el núcleo primero, la raíz de composición al final. -->
+    <modules>
+        <module>auth-core</module>
+        <module>auth-adapters</module>
+        <module>auth-app</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <!-- Versiones de los módulos internos, para que los hijos no repitan ${project.version}. -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>co.edu.corhuila.marketagri</groupId>
+                <artifactId>auth-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>co.edu.corhuila.marketagri</groupId>
+                <artifactId>auth-adapters</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

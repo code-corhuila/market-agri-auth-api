@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: market-agri-auth-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/auth}
+    username: ${DATABASE_USER:auth}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10        # tamaño del pool
+      connection-timeout: 5000     # espera por conexión (ms)
+      connection-init-sql: SET statement_timeout = 5000   # tiempo por sentencia (ms)
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+auth:
+  jwt:
+    issuer: marketplace-auth            # api-contract.md D-C1: fijo, no configurable
+    private-key: ${JWT_PRIVATE_KEY:}    # PEM en una línea con \n literales; solo auth la tiene
+    public-key: ${JWT_PUBLIC_KEY:}
+    key-id: ${JWT_KEY_ID:}
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful               # apagado ordenado
+  tomcat:
+    connection-timeout: 5s         # lectura de cabeceras
+    keep-alive-timeout: 60s        # inactividad
