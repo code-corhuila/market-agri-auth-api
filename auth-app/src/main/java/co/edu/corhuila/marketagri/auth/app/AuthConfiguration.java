@@ -14,6 +14,7 @@ import co.edu.corhuila.marketagri.auth.adapter.out.security.PrivateKeys;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.Rs256AccessTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.security.RsaSigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.in.GetUser;
+import co.edu.corhuila.marketagri.auth.application.port.in.GetUserContact;
 import co.edu.corhuila.marketagri.auth.application.port.in.IssueServiceToken;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
 import co.edu.corhuila.marketagri.auth.application.port.in.ProvisionAdmin;
@@ -28,6 +29,7 @@ import co.edu.corhuila.marketagri.auth.application.port.out.UnitOfWork;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserProfiles;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserRegistrations;
+import co.edu.corhuila.marketagri.auth.application.usecase.GetUserContactService;
 import co.edu.corhuila.marketagri.auth.application.usecase.GetUserService;
 import co.edu.corhuila.marketagri.auth.application.usecase.IssueServiceTokenService;
 import co.edu.corhuila.marketagri.auth.application.usecase.LogInService;
@@ -143,6 +145,12 @@ public class AuthConfiguration {
     @Bean
     GetUser getUser(UserProfiles profiles) {
         return new GetUserService(profiles);
+    }
+
+    /** I-07: a user's contact for a service (ADR-016). */
+    @Bean
+    GetUserContact getUserContact(UserProfiles profiles) {
+        return new GetUserContactService(profiles);
     }
 
     /** FR-008: the initial ADMIN, from a path the team operates (ADR-020 point 8). */
