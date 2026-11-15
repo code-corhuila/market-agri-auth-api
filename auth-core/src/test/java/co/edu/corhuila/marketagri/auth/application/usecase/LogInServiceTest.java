@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn.Command;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn.Session;
 import co.edu.corhuila.marketagri.auth.application.port.out.AccessTokens;
+import co.edu.corhuila.marketagri.auth.application.port.out.LoginAttempts;
 import co.edu.corhuila.marketagri.auth.application.port.out.PasswordVerifier;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
@@ -85,12 +86,28 @@ class LogInServiceTest {
         }
     }
 
+    /** These tests are about the session; the lockout has its own (LoginLockoutTest). */
+    private static final LoginAttempts NO_LOCKS = new LoginAttempts() {
+        @Override
+        public boolean isLocked(UUID userId, Instant now) {
+            return false;
+        }
+
+        @Override
+        public void recordFailure(UUID userId, Instant now, int maxFailures, Duration lock) {
+        }
+
+        @Override
+        public void recordSuccess(UUID userId) {
+        }
+    };
+
     private final FakeAccounts accounts = new FakeAccounts();
     private final FakePasswords passwords = new FakePasswords();
     private final FakeAccessTokens accessTokens = new FakeAccessTokens();
     private final FakeRefreshTokens refreshTokens = new FakeRefreshTokens();
     private final LogInService service = new LogInService(accounts, passwords, accessTokens, refreshTokens,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            NO_LOCKS, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     void theRightPasswordGivesASessionForThatUser() {
@@ -115,7 +132,7 @@ class LogInServiceTest {
     void theTimesAreWholeSecondsLikeTheClaimsOfTheToken() {
         // iat and exp of a JWT are seconds: expiresAt must say exactly what the token says.
         LogInService atAFraction = new LogInService(accounts, passwords, accessTokens, refreshTokens,
-                Clock.fixed(NOW.plusMillis(750), ZoneOffset.UTC));
+                NO_LOCKS, Clock.fixed(NOW.plusMillis(750), ZoneOffset.UTC));
 
         Session session = atAFraction.logIn(new Command("productor@market-agri.test", PASSWORD));
 

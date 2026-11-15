@@ -3,6 +3,7 @@ package co.edu.corhuila.marketagri.auth.app;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.OpaqueTokens;
+import co.edu.corhuila.marketagri.auth.application.port.out.LoginAttempts;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserProfiles;
@@ -10,6 +11,7 @@ import co.edu.corhuila.marketagri.auth.domain.model.Email;
 import co.edu.corhuila.marketagri.auth.domain.model.PasswordHash;
 import co.edu.corhuila.marketagri.auth.domain.model.Role;
 import co.edu.corhuila.marketagri.auth.domain.model.User;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +39,9 @@ class AuthAccountsIT extends AuthIntegrationTest {
 
     @Autowired
     private UserProfiles profiles;
+
+    @Autowired
+    private LoginAttempts attempts;
 
     @Autowired
     private JdbcClient jdbc;
@@ -112,6 +117,37 @@ class AuthAccountsIT extends AuthIntegrationTest {
             assertThat(row.get("used_at")).isNull();
             assertThat(row.get("revoked_at")).isNull();
             assertThat(refreshTokens.issue(id, issuedAt, expiresAt)).isNotEqualTo(token);
+        });
+    }
+
+    @Test
+    void theFifthConsecutiveFailureLocksForFifteenMinutesAndASuccessResets() {
+        // HU-AUTH-005 against the columns of auth-db: one atomic UPDATE counts and locks.
+        rolledBack(() -> {
+            UUID id = insertUser("bloqueo.it@market-agri.test", null);
+            Instant now = Instant.parse("2026-11-07T15:00:00Z");
+            Duration lock = Duration.ofMinutes(15);
+
+            for (int i = 0; i < 4; i++) {
+                attempts.recordFailure(id, now, 5, lock);
+            }
+            assertThat(attempts.isLocked(id, now)).isFalse();
+            attempts.recordSuccess(id);
+            for (int i = 0; i < 4; i++) {
+                attempts.recordFailure(id, now, 5, lock);
+            }
+            assertThat(attempts.isLocked(id, now)).isFalse();  // the success reset the count
+
+            attempts.recordFailure(id, now, 5, lock);
+
+            assertThat(attempts.isLocked(id, now)).isTrue();
+            assertThat(attempts.isLocked(id, now.plus(lock).minusSeconds(1))).isTrue();
+            assertThat(attempts.isLocked(id, now.plus(lock))).isFalse();
+            Map<String, Object> row = jdbc.sql("SELECT failed_login_count, locked_until FROM user_account WHERE id = :id")
+                    .param("id", id).query().singleRow();
+            assertThat(row.get("failed_login_count")).isEqualTo(0);
+            attempts.recordSuccess(id);
+            assertThat(attempts.isLocked(id, now)).isFalse();
         });
     }
 }

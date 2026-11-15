@@ -3,6 +3,7 @@ package co.edu.corhuila.marketagri.auth.app;
 import co.edu.corhuila.marketagri.auth.adapter.in.http.PublicKeys;
 import co.edu.corhuila.marketagri.auth.adapter.in.http.Rs256Verifier;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcDatabaseCheck;
+import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcLoginAttempts;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcRefreshTokens;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcUserAccounts;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.JdbcUserRegistrations;
@@ -18,6 +19,7 @@ import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
 import co.edu.corhuila.marketagri.auth.application.port.in.ProvisionAdmin;
 import co.edu.corhuila.marketagri.auth.application.port.in.PublishSigningKey;
 import co.edu.corhuila.marketagri.auth.application.port.in.Register;
+import co.edu.corhuila.marketagri.auth.application.port.out.LoginAttempts;
 import co.edu.corhuila.marketagri.auth.application.port.out.ReadinessCheck;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.ServiceClients;
@@ -121,8 +123,14 @@ public class AuthConfiguration {
 
     @Bean
     LogIn logIn(UserAccounts accounts, BcryptPasswordVerifier passwords, Rs256AccessTokens tokenSigner,
-                RefreshTokens refreshTokens) {
-        return new LogInService(accounts, passwords, tokenSigner, refreshTokens, Clock.systemUTC());
+                RefreshTokens refreshTokens, LoginAttempts attempts) {
+        return new LogInService(accounts, passwords, tokenSigner, refreshTokens, attempts, Clock.systemUTC());
+    }
+
+    /** HU-AUTH-005: the lockout state of user_account. */
+    @Bean
+    LoginAttempts loginAttempts(JdbcClient jdbc) {
+        return new JdbcLoginAttempts(jdbc);
     }
 
     /** E-01: the user and its Idempotency-Key in one transaction (D-C35). */

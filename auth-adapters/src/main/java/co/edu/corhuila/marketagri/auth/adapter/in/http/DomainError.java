@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 enum DomainError {
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR.message()),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos."),
+    ACCOUNT_LOCKED(HttpStatus.LOCKED,
+            "La cuenta está bloqueada temporalmente por intentos fallidos. Intente de nuevo en 15 minutos."),
     ROLE_NOT_ALLOWED(HttpStatus.UNPROCESSABLE_ENTITY, "No es posible registrarse con el rol ADMIN."),
     EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "El correo ya está registrado."),
     FORBIDDEN(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN.message()),
