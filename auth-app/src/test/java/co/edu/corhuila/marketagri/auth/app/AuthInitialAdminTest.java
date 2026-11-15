@@ -4,10 +4,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import co.edu.corhuila.marketagri.auth.application.port.out.LoginAttempts;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserRegistrations;
 import co.edu.corhuila.marketagri.auth.domain.model.User;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,6 +44,25 @@ class AuthInitialAdminTest extends AuthSpringTest {
         @Primary
         UserAccounts inMemoryAccounts() {
             return email -> Optional.ofNullable(byEmail.get(email.value()));
+        }
+
+        @Bean
+        @Primary
+        LoginAttempts noLocks() {
+            return new LoginAttempts() {
+                @Override
+                public boolean isLocked(UUID userId, Instant now) {
+                    return false;
+                }
+
+                @Override
+                public void recordFailure(UUID userId, Instant now, int maxFailures, Duration lock) {
+                }
+
+                @Override
+                public void recordSuccess(UUID userId) {
+                }
+            };
         }
 
         @Bean
