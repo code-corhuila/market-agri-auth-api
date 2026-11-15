@@ -42,6 +42,11 @@ auth:
   # Callers of I-01 (ADR-020 point 5): clientId:sha256-hex-of-the-secret pairs, comma-separated.
   # An environment secret; empty means no service can get a token.
   service-clients: ${AUTH_SERVICE_CLIENTS:}
+  # The initial ADMIN (FR-008, ADR-020 point 8): both or neither; secrets of main. dev and qa leave
+  # them empty, the seed users of auth-db include an ADMIN.
+  admin:
+    email: ${AUTH_ADMIN_EMAIL:}
+    password: ${AUTH_ADMIN_PASSWORD:}
 
 # One JSON object per log line; the MDC (correlationId) goes into every line (Anexo C 5.3.9).
 logging:

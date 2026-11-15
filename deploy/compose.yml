@@ -21,6 +21,9 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?set JWT_PUBLIC_KEY}
       # Callers of I-01 (clientId:sha256-hex pairs); empty = no service token is issued.
       AUTH_SERVICE_CLIENTS: ${AUTH_SERVICE_CLIENTS:-}
+      # The initial ADMIN (FR-008): both or neither; set only in main, as secrets.
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-}
     secrets:                          # declared by market-agri-infra; resolved when included
       - auth-jwt-private-key
     depends_on:                       # postgres lives in market-agri-infra; resolved when included

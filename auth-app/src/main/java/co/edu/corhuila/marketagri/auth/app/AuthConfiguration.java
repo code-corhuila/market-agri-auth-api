@@ -15,6 +15,7 @@ import co.edu.corhuila.marketagri.auth.adapter.out.security.RsaSigningKeys;
 import co.edu.corhuila.marketagri.auth.application.port.in.GetUser;
 import co.edu.corhuila.marketagri.auth.application.port.in.IssueServiceToken;
 import co.edu.corhuila.marketagri.auth.application.port.in.LogIn;
+import co.edu.corhuila.marketagri.auth.application.port.in.ProvisionAdmin;
 import co.edu.corhuila.marketagri.auth.application.port.in.PublishSigningKey;
 import co.edu.corhuila.marketagri.auth.application.port.in.Register;
 import co.edu.corhuila.marketagri.auth.application.port.out.ReadinessCheck;
@@ -28,6 +29,7 @@ import co.edu.corhuila.marketagri.auth.application.port.out.UserRegistrations;
 import co.edu.corhuila.marketagri.auth.application.usecase.GetUserService;
 import co.edu.corhuila.marketagri.auth.application.usecase.IssueServiceTokenService;
 import co.edu.corhuila.marketagri.auth.application.usecase.LogInService;
+import co.edu.corhuila.marketagri.auth.application.usecase.ProvisionAdminService;
 import co.edu.corhuila.marketagri.auth.application.usecase.PublishSigningKeyService;
 import co.edu.corhuila.marketagri.auth.application.usecase.RegisterService;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -132,6 +135,20 @@ public class AuthConfiguration {
     @Bean
     GetUser getUser(UserProfiles profiles) {
         return new GetUserService(profiles);
+    }
+
+    /** FR-008: the initial ADMIN, from a path the team operates (ADR-020 point 8). */
+    @Bean
+    ProvisionAdmin provisionAdmin(UserAccounts accounts, UserRegistrations registrations,
+                                  BcryptPasswordVerifier passwords) {
+        return new ProvisionAdminService(accounts, registrations, passwords);
+    }
+
+    @Bean
+    ApplicationRunner initialAdmin(ProvisionAdmin provisionAdmin,
+                                   @Value("${auth.admin.email:}") String email,
+                                   @Value("${auth.admin.password:}") String password) {
+        return new InitialAdmin(provisionAdmin, email, password);
     }
 
     /** The callers of I-01 (ADR-020 points 5 and 8): AUTH_SERVICE_CLIENTS, an environment secret. */
