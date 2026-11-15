@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** E-02 {@code POST /api/v1/auth/login} (HU-AUTH-002): anonymous; the session or one generic 401. */
+@PublicEndpoint
 @RestController
 @RequestMapping("/api/v1/auth")
 public class LoginController {

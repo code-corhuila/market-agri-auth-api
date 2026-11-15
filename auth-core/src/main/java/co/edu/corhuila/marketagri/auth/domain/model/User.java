@@ -21,4 +21,22 @@ public record User(UUID id, String name, Email email, PasswordHash passwordHash,
         }
         name = name.strip();
     }
+
+    /** Factory of a self-registered user (E-01): only a producer or a buyer (FR-008). */
+    public static User register(UUID id, String name, Email email, PasswordHash passwordHash, Role role) {
+        if (role != Role.PRODUCER && role != Role.BUYER) {
+            throw new RoleNotAllowedException();
+        }
+        return new User(id, name, email, passwordHash, role);
+    }
+
+    /**
+     * E-08: a user is visible to themselves and to ADMIN only. Checked before looking the user up,
+     * so the answer never tells whether an id exists.
+     */
+    public static void ensureVisibleTo(UUID userId, UUID callerId, Role callerRole) {
+        if (!userId.equals(callerId) && callerRole != Role.ADMIN) {
+            throw new UserNotVisibleException();
+        }
+    }
 }

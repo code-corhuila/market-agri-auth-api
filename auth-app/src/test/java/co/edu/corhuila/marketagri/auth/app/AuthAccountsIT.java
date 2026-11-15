@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import co.edu.corhuila.marketagri.auth.adapter.out.persistence.OpaqueTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.RefreshTokens;
 import co.edu.corhuila.marketagri.auth.application.port.out.UserAccounts;
+import co.edu.corhuila.marketagri.auth.application.port.out.UserProfiles;
 import co.edu.corhuila.marketagri.auth.domain.model.Email;
 import co.edu.corhuila.marketagri.auth.domain.model.PasswordHash;
 import co.edu.corhuila.marketagri.auth.domain.model.Role;
@@ -33,6 +34,9 @@ class AuthAccountsIT extends AuthIntegrationTest {
 
     @Autowired
     private RefreshTokens refreshTokens;
+
+    @Autowired
+    private UserProfiles profiles;
 
     @Autowired
     private JdbcClient jdbc;
@@ -74,6 +78,20 @@ class AuthAccountsIT extends AuthIntegrationTest {
 
             assertThat(accounts.findActiveByEmail(Email.of("borrada.it@market-agri.test"))).isEmpty();
             assertThat(accounts.findActiveByEmail(Email.of("nadie.it@market-agri.test"))).isEmpty();
+        });
+    }
+
+    @Test
+    void findsAnActiveUserByItsIdButNotADeletedOne() {
+        // E-08: a deleted account is not found, as in the login.
+        rolledBack(() -> {
+            UUID active = insertUser("activa.id.it@market-agri.test", null);
+            UUID deleted = insertUser("borrada.id.it@market-agri.test", Instant.parse("2026-11-01T00:00:00Z"));
+
+            assertThat(profiles.findActiveById(active)).contains(new User(active, "Ana Ruiz",
+                    Email.of("activa.id.it@market-agri.test"), new PasswordHash(HASH), Role.PRODUCER));
+            assertThat(profiles.findActiveById(deleted)).isEmpty();
+            assertThat(profiles.findActiveById(UUID.randomUUID())).isEmpty();
         });
     }
 

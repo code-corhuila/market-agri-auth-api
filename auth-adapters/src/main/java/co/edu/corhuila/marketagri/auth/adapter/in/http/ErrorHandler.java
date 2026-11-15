@@ -67,6 +67,29 @@ public class ErrorHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(known.get().status()).body(error);
     }
 
+    /** No token or an invalid one (authentication.md §3): why, only in the log. */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Object> handleUnauthorized(UnauthorizedException exception, WebRequest request) {
+        LOG.warn("Rejected credential: {}", exception.getMessage());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+        return body(ErrorCode.UNAUTHORIZED, List.of(), headers, request);
+    }
+
+    /** A valid token that may not use the route (D-C27). */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Object> handleForbidden(ForbiddenException exception, WebRequest request) {
+        LOG.warn("Denied: {}", exception.getMessage());
+        return body(ErrorCode.FORBIDDEN, List.of(), HttpHeaders.EMPTY, request);
+    }
+
+    /** A header or a parameter out of range (the Idempotency-Key of E-01): 400 naming it. */
+    @ExceptionHandler(InvalidParameterException.class)
+    public ResponseEntity<Object> handleInvalidParameter(InvalidParameterException exception, WebRequest request) {
+        List<ApiError.FieldDetail> details = List.of(new ApiError.FieldDetail(exception.field(), exception.getMessage()));
+        return body(ErrorCode.VALIDATION_ERROR, details, HttpHeaders.EMPTY, request);
+    }
+
     /** Last resort: neutral message to the client, full detail only in the log (NFR-039). */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpected(Exception exception, WebRequest request) {

@@ -40,4 +40,16 @@ class BcryptPasswordVerifierTest {
 
         assertThat(spent).isGreaterThan(Duration.ofMillis(50));
     }
+
+    @Test
+    void aNewHashIsBcryptOfCost12ThatAuthDbAcceptsAndMatchesOnlyItsPassword() {
+        PasswordHash hash = verifier.hash("Comprador123");
+
+        // The CHECK of user_account.password_hash in auth-db (INV-003).
+        assertThat(hash.value()).matches("^\\$2[aby]\\$(1[2-9]|2[0-9]|3[01])\\$[./A-Za-z0-9]{53}$");
+        assertThat(hash.value()).startsWith("$2a$12$");
+        assertThat(verifier.matches("Comprador123", hash)).isTrue();
+        assertThat(verifier.matches("Comprador124", hash)).isFalse();
+        assertThat(verifier.hash("Comprador123")).isNotEqualTo(hash);  // a new salt every time
+    }
 }

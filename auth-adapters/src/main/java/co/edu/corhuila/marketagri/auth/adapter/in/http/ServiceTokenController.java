@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  * I-01 {@code POST /internal/v1/auth/service-token} (HU-PLAT-002): client credentials in the body,
  * never routed by the gateway; called once per caller and environment, when the caller is deployed.
  */
+@PublicEndpoint
 @RestController
 @RequestMapping("/internal/v1/auth")
 public class ServiceTokenController {
