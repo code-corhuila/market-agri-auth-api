@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import co.edu.corhuila.marketagri.auth.domain.model.Email;
 import co.edu.corhuila.marketagri.auth.domain.model.PasswordHash;
 import co.edu.corhuila.marketagri.auth.domain.model.Role;
+import co.edu.corhuila.marketagri.auth.domain.model.ServiceClient;
 import co.edu.corhuila.marketagri.auth.domain.model.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,6 +75,24 @@ class Rs256AccessTokensTest {
         String tampered = Base64.getUrlEncoder().withoutPadding().encodeToString(
                 "{\"sub\":\"otro\",\"role\":\"ADMIN\"}".getBytes(StandardCharsets.UTF_8));
         assertThat(verifies(parts[0] + "." + tampered, parts[2])).isFalse();
+    }
+
+    @Test
+    void aServiceTokenSaysWhichServiceItIsWithRoleServiceAndNoName() throws Exception {
+        String token = tokens.signService(new ServiceClient("workflow"), IAT, EXP);
+        JsonNode header = part(token, 0);
+        JsonNode claims = part(token, 1);
+        String[] parts = token.split("\\.");
+
+        assertThat(header.get("alg").asText()).isEqualTo("RS256");
+        assertThat(header.get("kid").asText()).isEqualTo("kid-test");
+        assertThat(claims.get("sub").asText()).isEqualTo("service:workflow");
+        assertThat(claims.get("role").asText()).isEqualTo("SERVICE");
+        assertThat(claims.get("iss").asText()).isEqualTo("market-agri-auth");
+        assertThat(claims.get("iat").asLong()).isEqualTo(IAT.getEpochSecond());
+        assertThat(claims.get("exp").asLong()).isEqualTo(EXP.getEpochSecond());
+        assertThat(claims.has("name")).isFalse();
+        assertThat(verifies(parts[0] + "." + parts[1], parts[2])).isTrue();
     }
 
     @Test
