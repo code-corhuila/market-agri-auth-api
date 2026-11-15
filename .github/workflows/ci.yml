@@ -24,3 +24,26 @@ jobs:
       # Integration tests are skipped when TEST_DATABASE_URL is not set (Annex C).
       - name: Build and test
         run: mvn -B verify
+
+  # Only on promotion to qa (git-conventions §6): PostgreSQL with the schema of auth-db.
+  integration:
+    if: github.base_ref == 'qa'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out auth-db on the same target branch
+        uses: actions/checkout@v4
+        with:
+          repository: code-corhuila/market-agri-auth-db
+          ref: ${{ github.base_ref }}
+          path: market-agri-auth-db
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Test database with the auth schema
+        run: AUTH_DB_DIR=market-agri-auth-db bash scripts/test-database.sh >> "$GITHUB_ENV"
+      - name: Unit, HTTP and integration tests
+        run: mvn -B verify -Pintegration
